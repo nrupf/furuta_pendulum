@@ -1,4 +1,4 @@
-PROJECT = Stopwatch
+PROJECT = Driver
 
 QUARTUS_CPF = docker run --platform linux/amd64 -it --rm -v .:/build didiermalenfant/quartus:22.1-apple-silicon quartus_cpf
 QUARTUS_SH  = docker run --platform linux/amd64 -it --rm -v .:/build didiermalenfant/quartus:22.1-apple-silicon quartus_sh
