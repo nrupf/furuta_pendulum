@@ -15,7 +15,7 @@ module PID_loop #(
     input logic [13:0] angle,
     input logic [13:0] angle_0,
 
-    output logic signed [31:0] error_correction
+    output logic signed [31:0] error_correction,
     output logic sat_flag // high when output is clamped
 );
 
@@ -54,13 +54,13 @@ module PID_loop #(
     logic signed [47:0] i_term;
     logic signed [31:0] d_term;
 
-    always_ff @posedge clk_fpga) begin
+    always_ff @(posedge clk_fpga) begin
         if (!rst_n) begin
             p_term <= '0;
             i_term <= '0;
             d_term <= '0;
         end else if (enable) begin
-            p_term <= $signed({1'b0, K_p}) * $signed({{1{error[14]}}, errir});
+            p_term <= $signed({1'b0, K_p}) * $signed({{1{error[14]}}, error});
             i_term <= $signed({1'b0, K_i}) * integral;
             d_term <= $signed({1'b0, K_d}) * $signed({{1{derivative[14]}}, derivative});
         end
@@ -81,7 +81,7 @@ module PID_loop #(
     always_ff @(posedge clk_fpga) begin
         if(!rst_n) begin
             error_correction <= '0;
-            sat_flag <= 1'b';
+            sat_flag <= 1'b0;
         end else if(enable) begin
             if (pid_scaled > OUTMAX) begin
                 error_correction <= 32'h7FFF_FFFF;
