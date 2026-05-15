@@ -1,19 +1,19 @@
 module PID_loop #(
     parameter int FRAC_BITS     = 8,
-    parameter int INT_MAX       =  20_000,
-    parameter int INT_MIN       = -20_000
 )(
 
-    input logic clk_fpga,
-    input logic rst_n,
-    input logic enable,
+    input logic clk_i,          // FPGA clock
+    input logic reset_i,
+    input logic enable,         // whenever new valid angle arrives, this is 1 for 1 clock cycle
 
-    input logic [15:0] K_i,
+    input logic [15:0] K_i,     
     input logic [15:0] K_d,
     input logic [15:0] K_p,
 
-    input logic [13:0] angle,
-    input logic [13:0] angle_0,
+    input logic [31:0] integral_max,    // maximum value of integral to avoid wind-up
+
+    input logic [14:0] angle_raw_i,     // raw angle input
+    input logic [14:0] angle_0,         // calibrated zero angle
 
     output logic signed [31:0] error_correction,
     output logic sat_flag // high when output is clamped
@@ -26,26 +26,27 @@ module PID_loop #(
     logic signed [14:0] derivative;
     logic signed [31:0] integral;
 
-    logic signed [31:0] int_next;
-    assign int_next = integral + {{17{error[14]}}, error}; // sign-extend from 15 bits to 32
+    logic signed [31:0] integral_next;
+    assign integral_next = integral + {{17{error[14]}}, error}; // sign-extend from 15 bits to 32
 
-    always_ff @(posedge clk_fpga) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk_i) begin
+        if (reset_i) begin
             error <= '0;
             previous_error <= '0;
             derivative <= '0;
             integral <= '0;
         end
         else if(enable) begin
+            // convert unsigned 15bit angles to positive, signed, 16bit angles
+            // subtract zero angle from incoming angle to get correct sign
+            error <= $signed({1'b0, angle_raw_i}) - $signed({1'b0, angle_0});     // range: -16383 to +16383
 
-        error <= $signed({1'b0, angle_0}) - $signed({1'b0, angle});     // range: -16383 to +16383
+            derivative <= error - previous_error;
+            previous_error = error;
 
-        derivative <= error - previous_error;
-        previous_error = error;
-
-        if (int_next > INT_MAX) integral <= INT_MAX;
-        else if (int_next < INT_MIN) integral <= INT_MIN;
-        else integral <= int_next;
+            if (integral_next > integral_max) integral <= integral_max;
+            else if (integral_next < -integral_max) integral <= -integral_max;
+            else integral <= integral_next;
         end
     end
 
@@ -54,8 +55,8 @@ module PID_loop #(
     logic signed [47:0] i_term;
     logic signed [31:0] d_term;
 
-    always_ff @(posedge clk_fpga) begin
-        if (!rst_n) begin
+    always_ff @(posedge clk_i) begin
+        if (reset_i) begin
             p_term <= '0;
             i_term <= '0;
             d_term <= '0;
@@ -78,8 +79,8 @@ module PID_loop #(
 
     assign pid_scaled = pid_sum >>> FRAC_BITS;
 
-    always_ff @(posedge clk_fpga) begin
-        if(!rst_n) begin
+    always_ff @(posedge clk_i) begin
+        if(reset_i) begin
             error_correction <= '0;
             sat_flag <= 1'b0;
         end else if(enable) begin
