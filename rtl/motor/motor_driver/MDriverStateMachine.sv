@@ -1,10 +1,8 @@
 /**
-State machine for driving a stepper motor CW or CCW
-
-Marvin Schmidiger 31.03.2026
+State machine for driving a stepper motor CW or CCW with different velocities
 **/
 
-module DriverStateMachine (
+module MDriverStateMachine (
     input logic clk_i,
     input logic reset_i,
     input logic enable_i,
