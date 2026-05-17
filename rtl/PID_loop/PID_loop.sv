@@ -23,7 +23,7 @@
 //   K_i [15:0]          - Integral gain (unsigned fixed-point)
 //   K_d [15:0]          - Derivative gain (unsigned fixed-point)
 //
-//   integral_max [31:0] - Anti-windup clamp: integral is capped to ±integral_max.
+//   integral_max_i [31:0] - Anti-windup clamp: integral is capped to ±integral_max_i.
 //                         Prevents the integrator from accumulating unboundedly
 //                         when the pendulum is held away from zero for a long time.
 //   integral_decay_bits [5:0]
@@ -90,7 +90,7 @@ module PID_loop #(
 
     // maximum value of integral to avoid wind-up
     // declared signed so comparisons with signed integral_next work correctly
-    input  logic signed [31:0] integral_max,
+    input  logic signed [31:0] integral_max_i,
 
     // how many bits of old integral to throw away, for tuning how much integral remembers
     // set to ca 4 (guess). 6 bits is enough since max meaningful shift is ~32
@@ -170,8 +170,8 @@ module PID_loop #(
             // INTEGRAL CALCULATION
             // check bounds of integral to prevent wind-up
             // (integral_next is the combinational wire computed above)
-            if      (integral_next >  integral_max) integral <=  integral_max;
-            else if (integral_next < -integral_max) integral <= -integral_max;
+            if      (integral_next >  integral_max_i) integral <=  integral_max_i;
+            else if (integral_next < -integral_max_i) integral <= -integral_max_i;
             else                                    integral <= integral_next;
 
             s1_done <= 1'b1;  // tell stage 3 that fresh data is in the registers
