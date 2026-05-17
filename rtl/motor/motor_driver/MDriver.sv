@@ -1,91 +1,96 @@
 /**
 Driver for a stepper motor CW or CCW, connecting all the different files
-
-#(
-parameter DIVIDER_LEN = 10000 // 5000000 Hz tick
-)(
-input        MAX10_CLK1_50,  // 50 MHz clock
-input  [1:0] KEY,            // Buttons
-inout  [9:0] ARDUINO_IO,     // Header pins
-output [9:0] LEDR,           // LEDs
-input  [9:0] SW,             // Switches
-output [7:0] HEX0,           // 7-segment display
-output [7:0] HEX1,           // 7-segment display
-output [7:0] HEX2,           // 7-segment display
-output [7:0] HEX3,           // 7-segment display
-output [7:0] HEX4            // 7-segment display
-);
-
-logic clk;
-logic reset;
-logic enable_i;
-logic direction_i;
-logic step_enable;
-logic direction_o;
 **/
 
-module MDriver #()(
-    input logic clk_i,
-    input logic enable_i,
-    input logic direction_i,
-    input logic step_enable_i
-);
+module MDriver (
+        input logic clk_i,
+        input logic reset_i,
+        input logic enable_i,
+        input logic direction_i,
+        input logic [30:0] correction_i,
 
-// Signal definition
-logic tick;
+        output  [1:0] ARDUINO_IO
+    );
+
+    logic square_wave_M; // square_wave_M is used for the signal output of the MSignalFreq.sv file
+    logic direction_M; // direction_M is the signal, which gets put on the DIR input of the Big Easy Driver
+    logic step_enable_M; // step_enableg_M is a signal, which is 1 when the motor should either turn CW or CCW and gets put in an and link onto the STEP input of the Big Easy Driver
+    logic [24:0] divider; // divider used for storing the value from the look up table depending on the correction for further processing
 
 
-// sw_in[0] on-off button strobe
-// sw_in[1] direction button strobe
-logic unsigned [1:0] sw_in;
+    // Look-Up Table for divider values, implementing 11 different cases, because of our maximal frequency of 1 kHz,
+    // and the duration of how long the step signal on the big easy driver is at the same specific signal, at the
+    // moment we decided that we have it at the same signal for 10 ms (so we update our loop every 10 ms) therefore
+    // 11 cases are good for now.
+    // Pre‑computed dividers 
+    localparam logic [24:0] DIV0  = 0;          // 0 Hz (motor off)
+    localparam logic [24:0] DIV1  = 250000;     // 100 Hz
+    localparam logic [24:0] DIV2  = 125000;     // 200 Hz
+    localparam logic [24:0] DIV3  = 83333;      // 300 Hz
+    localparam logic [24:0] DIV4  = 62500;      // 400 Hz
+    localparam logic [24:0] DIV5  = 50000;      // 500 Hz
+    localparam logic [24:0] DIV6  = 41666;      // 600 Hz
+    localparam logic [24:0] DIV7  = 35714;      // 700 Hz
+    localparam logic [24:0] DIV8  = 31250;      // 800 Hz
+    localparam logic [24:0] DIV9  = 27777;      // 900 Hz
+    localparam logic [24:0] DIV10 = 25000;      // 1000 Hz
 
-// sw_in[0] on-off debounced
-// sw_in[1] direction debounced
-logic unsigned [1:0] sw_in_debounced;
+    // Priority encoder – find highest set bit (0..30) or none
+    logic [4:0] msb_pos;          // 0..30, value only valid if mag != 0
+    logic       mag_nonzero;
 
-// Signal assignment
-assign clk = MAX10_CLK1_50;
-assign sw_in[0] = SW[0];
-assign sw_in[1] = SW[1];
-assign enable_i = sw_in_debounced[0];
-assign direction_i = sw_in_debounced[1];
-
-// HERE I SURELY NEED TO ASSIGN MORE BUTTONS AND SO ON.... ???
-
-// Generate a reset pulse on power-up
-ResetGenerator resetGenerator(
-    .clk_i  (clk),
-    .reset_o(reset)
-);
-
-// generate the tick (one pulse every 1/3 s approximately)
-SignalFreq #(.DIVIDER(DIVIDER_LEN), .REG_W(24)) signalFreq(
-    .clk_i (clk),
-    .reset_i(reset),
-    .tick_o (tick)
-);
-
-genvar i;
-generate
-    for(i=0; i<2; i++) begin: generate_debouncer
-        Debouncer #(.COUNT_LEN(DIVIDER_LEN)) debounce(
-            .clk_i(clk),
-            .reset_i(reset),
-            .bouncing_i(sw_in[i]), // ...??? I'm not sure if it is debounced properly, since we need both states of the switch
-            .debounced_o(sw_in_debounced[i])
-        );
+    always_comb begin
+        msb_pos = 5'd0;
+        mag_nonzero = 1'b0;
+        for (int i = 30; i >= 0; i--) begin
+            if (correction_i[i]) begin
+                msb_pos = i[4:0];
+                mag_nonzero = 1'b1;
+                break;
+            end
+        end
     end
-endgenerate
 
-DriverStateMachine driverStateMachine(
-    .clk_i(clk),
-    .enable_i(enable_i),
-    .direction_i(direction_i),
-    .direction_o(direction_o),
-    .step_o(step_enable)    
-);
+    // Map MSB position to divider
+    always_comb begin
+        if (!mag_nonzero)
+            divider = DIV0;
+        else case (msb_pos)
+            // Grouping: higher MSB -> smaller divider
+            5'd30, 5'd29, 5'd28: divider = DIV10;
+            5'd27, 5'd26, 5'd25: divider = DIV9;
+            5'd24, 5'd23, 5'd22: divider = DIV8;
+            5'd21, 5'd20, 5'd19: divider = DIV7;
+            5'd18, 5'd17, 5'd16: divider = DIV6;
+            5'd15, 5'd14, 5'd13: divider = DIV5;
+            5'd12, 5'd11, 5'd10: divider = DIV4;
+            5'd9, 5'd8, 5'd7:    divider = DIV3;
+            5'd6, 5'd5, 5'd4:    divider = DIV2;
+            5'd3, 5'd2, 5'd1:    divider = DIV1;
+            5'd0:                divider = DIV1;
+            default:             divider = DIV0;
+        endcase
+    end
 
-assign ARDUINO_IO[0] = direction_o;
-assign ARDUINO_IO[1] = step_enable && tick;
+
+    // generate the square wave signal with the frequency corresponding to the correction of the PID-loop 
+    MSignalFreq mSignalFreq(
+        .clk_i (clk_i),
+        .reset_i(reset_i),
+        .divider(divider),
+        .square_wave_o (square_wave_M)
+    );
+
+    MDriverStateMachine mDriverStateMachine(
+        .clk_i(clk_i),
+        .reset_i(reset_i)
+        .enable_i(enable_i),
+        .direction_i(direction_i),
+        .direction_o(direction_M),
+        .step_o(step_enable_M)    
+    );
+
+    assign ARDUINO_IO[0] = direction_M;
+    assign ARDUINO_IO[1] = step_enable_M & square_wave_M;
 
 endmodule
