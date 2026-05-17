@@ -83,14 +83,28 @@ module MDriver (
 
     MDriverStateMachine mDriverStateMachine(
         .clk_i(clk_i),
-        .reset_i(reset_i)
+        .reset_i(reset_i),
         .enable_i(enable_i),
         .direction_i(direction_i),
         .direction_o(direction_M),
         .step_o(step_enable_M)    
     );
 
+    // Synchronise step enable to the low phase of the square wave
+    logic step_enable_gated;
+
+    always_ff @(posedge clk_i) begin
+        if (reset_i) begin
+            step_enable_gated <= 1'b0;
+        end else if (!step_enable_M && square_wave_M == 1'b0) begin
+            step_enable_gated <= 1'b0;        // disable only when low
+        end else if (step_enable_M && square_wave_M == 1'b0) begin
+            step_enable_gated <= 1'b1;        // enable when low
+        end
+        // else hold state
+    end
+
     assign ARDUINO_IO[0] = direction_M;
-    assign ARDUINO_IO[1] = step_enable_M & square_wave_M;
+    assign ARDUINO_IO[1] = step_enable_gated & square_wave_M;
 
 endmodule
