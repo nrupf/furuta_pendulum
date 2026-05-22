@@ -51,7 +51,7 @@ module SSCSensor (
 
     output logic        sck_o,            // serial clock output to sensor
     output logic        csq_o,            // chip select, active-low
-    output logic [14:0] angle_raw_o,      // 15-bit angle, valid when done_o=1
+    output logic signed [14:0] angle_raw_o,      // 15-bit angle, valid when done_o=1
     output logic        done_o            // pulses high for 1 clk_i cycle when angle ready
 );
 
@@ -144,8 +144,8 @@ module SSCSensor (
     // We use a generous 8-bit counter so it covers both.
     logic [7:0]  delay_cnt;
 
-    // Captured angle output (15-bit, from bits [15:1] of the data word)
-    logic [14:0] angle_capture;
+    // Captured angle output (15-bit, from bits [14:0] of the data word)
+    logic signed [14:0] angle_capture;
 
 // =============================================================================
 // 5. BIDIRECTIONAL DATA PIN LOGIC
@@ -284,6 +284,8 @@ module SSCSensor (
                             
                             // Current shift_reg[14:0] has bits [15:1] from sensor
                             // data_in has bit [0] from sensor
+                            // not a problem to store bits from unsigned shiftreg in signed angle_capture,
+                            // as long as no arithmetic is done
                             angle_capture <= {shift_reg[13:0], data_in};  // 15 bits [14:0]
                             
                             bit_cnt <= 5'd15;

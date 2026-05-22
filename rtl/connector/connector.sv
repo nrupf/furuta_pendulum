@@ -73,7 +73,7 @@ module connector (
  
     // Calibrated zero angle: the raw sensor reading when pendulum is perfectly upright.
     // Subtracted inside PID_loop to compute the error around zero.
-    input  logic [14:0] angle_0_i,
+    input  logic signed [14:0] angle_0_i,
  
     // Step scaling: right-shift applied to correction_value before counting steps.
     //   steps_to_send = correction_value >> step_scale_i
@@ -99,7 +99,7 @@ module connector (
     // DEBUG / STATUS OUTPUTS (optional — connect to LEDs or leave open)
     // -------------------------------------------------------------------------
     output logic        pid_sat_flag_o,     // high when PID output is saturated
-    output logic [14:0] angle_raw_o         // current raw angle (for monitoring)
+    output logic signed [14:0] angle_raw_o  // current raw angle (for monitoring)
 );
 // =============================================================================
 // 1. INTERNAL WIRES — connecting submodule ports together
@@ -107,7 +107,7 @@ module connector (
  
     // --- Sensor wires ---
     logic        sensor_start;      // we pulse this to trigger a new sensor read
-    logic [14:0] sensor_angle;      // 15-bit raw angle, valid when sensor_done=1
+    logic signed [14:0] sensor_angle;      // 15-bit raw angle, valid when sensor_done=1
     logic        sensor_done;       // sensor pulses this when angle is ready
  
     // --- PID wires ---

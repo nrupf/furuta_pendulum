@@ -96,8 +96,8 @@ module PID_loop #(
     // set to ca 4 (guess). 6 bits is enough since max meaningful shift is ~32
     input  logic [5:0]  integral_decay_bits,
 
-    input  logic [14:0] angle_raw_i,   // raw angle input
-    input  logic [14:0] angle_0,       // calibrated zero angle
+    input  logic signed [14:0] angle_raw_i,   // raw angle input
+    input  logic signed [14:0] angle_0,       // calibrated zero angle
 
     output logic        correction_direction,  // sign of correction: 0 = positive, 1 = negative
     output logic [30:0] correction_value,      // magnitude of correction
@@ -106,23 +106,59 @@ module PID_loop #(
 );
 
 
-    // =========================================================================
+// =========================================================================
     // STAGE 1
     // calculate current error, derivative and integral (sum of past errors)
     // triggered by enable_i
     // when done, pulses s1_done for exactly 1 cycle to trigger stage 3
     // =========================================================================
 
-    // convert unsigned 15-bit angles to positive, signed, 16-bit angles
-    // subtract zero angle from incoming angle to get correct sign
+    // Both angle_raw_i and angle_0 arrive as signed 15-bit two's complement values
+    // (range: -16384 to +16383, where 0 = 0°, +16383 ≈ +180°, -16384 = -180°).
+    // We sign-extend them to 16 bits by replicating bit 14 (the sign bit) into
+    // bit 15 — this preserves the signed value in a wider register.
+    // The bits themselves are unchanged; the extra bit just prevents overflow
+    // during the subtraction below.
+    //
+    // We then subtract the calibrated zero angle (angle_0) from the incoming
+    // angle to get a signed error centered around upright = 0.
+    //
+    // Because both angles are in the range ±180°, their difference could
+    // theoretically exceed ±180° if the sensor zero crossing lies between them.
+    // The wrap correction folds any such result back into ±180°.
+    //
+    // Result range: -16384 to +16383  (same as input, centered on angle_0)
     //
     // SV NOTE: {1'b0, angle_raw_i} concatenates a 0 bit in front of the 15-bit
     // angle, making it 16 bits. $signed() tells SV to treat it as a signed number.
     // Without $signed(), the subtraction would be unsigned and negative results
     // would wrap around instead of going negative.
     // Result range: -16383 to +16383
+    
+
+    logic signed [15:0] angle_raw_15bit;
+    logic signed [15:0] angle_0_15bit;
+
+    // Reinterpret the 15-bit values as signed (sign-extend bit 14)
+    //   angle_raw_i and angle_0 were also signed but only 15bit
+    assign angle_raw_15bit   = $signed({{1{angle_raw_i[14]}}, angle_raw_i});
+    assign angle_0_15bit = $signed({{1{angle_0[14]}},     angle_0});
+
+    // Signed subtraction
+    logic signed [15:0] raw_diff;
+    assign raw_diff = angle_raw_15bit - angle_0_15bit;
+
     logic signed [15:0] current_error;
-    assign current_error = $signed({1'b0, angle_raw_i}) - $signed({1'b0, angle_0});
+    // Wrap correction: if the difference is > +180° or < -180°, wrap it back
+    // +16384 corresponds to 180°
+    always_comb begin
+        if      (raw_diff >  16'd16383) current_error = raw_diff - 16'd32768;
+        else if (raw_diff < -16'd16383) current_error = raw_diff + 16'd32768;
+        else                            current_error = raw_diff;
+    end
+
+
+    
 
     logic signed [15:0] error;           // error from previous cycle (registered)
     logic signed [15:0] previous_error;
