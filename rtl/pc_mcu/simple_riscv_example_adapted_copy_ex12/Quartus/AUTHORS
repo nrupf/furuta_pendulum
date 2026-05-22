@@ -1,0 +1,11 @@
+The softcore is generated from the tinyduino project (a semester thesis of Domenic Wüthrich)
+https://gitlab.ethz.ch/ElectronicsForPhysicists2/tinyduino
+
+It is based on the VexRiscv project from Charles Papon
+https://github.com/SpinalHDL/VexRiscv
+
+The code from the tinyduino project was modified and compiled to generate system.v
+
+The adaptations are made by Yves Acremann
+
+

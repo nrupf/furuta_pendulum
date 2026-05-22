@@ -1,0 +1,37 @@
+{
+  "name": "tinyduino_lib",
+  "version": "1.0.0",
+  "description": "Software support for tinyduino.",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://gitlab.ethz.ch/ElectronicsForPhysicists2/tinyduino"
+  },
+  "authors":
+  [
+    {
+      "name": "Domenic Wüthrich",
+      "email": "domenicw@ethz.ch",
+      "url": "https://ethz.ch"
+    }
+  ],
+  "build": {
+    "srcFilter": [
+        "+<*.c>",
+        "+<*.cpp>",
+        "+<*.h>",
+        "+<*.S>"
+    ]
+  },
+  "export": {
+    "include":
+    [
+        "*.cpp",
+        "*.c",
+        "*.h",
+        "*.S"
+    ]
+  },
+  "license": "MIT",
+  "homepage": "https://ethz.ch"
+}

@@ -1,0 +1,16 @@
+Analysis & Synthesis Status : Successful - Sun May 17 09:02:16 2026
+Quartus Prime Version : 25.1std.0 Build 1129 10/21/2025 Patches 0.36 SC Lite Edition
+Revision Name : SimpleRiscExample
+Top-level Entity Name : SimpleRiscExample
+Family : MAX 10
+Total logic elements : 7,386
+    Total combinational functions : 4,924
+    Dedicated logic registers : 3,822
+Total registers : 3822
+Total pins : 118
+Total virtual pins : 0
+Total memory bits : 1,474,560
+Embedded Multiplier 9-bit elements : 8
+Total PLLs : 1
+UFM blocks : 0
+ADC blocks : 0
