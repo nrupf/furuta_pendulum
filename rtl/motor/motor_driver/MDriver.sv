@@ -9,7 +9,8 @@ module MDriver (
         input logic direction_i,
         input logic [30:0] correction_i,
 
-        output  [1:0] ARDUINO_IO
+        output logic driver_direction_o,
+        output logic driver_step_signal_o
     );
 
     logic square_wave_M; // square_wave_M is used for the signal output of the MSignalFreq.sv file
@@ -104,7 +105,7 @@ module MDriver (
         // else hold state
     end
 
-    assign ARDUINO_IO[0] = direction_M;
-    assign ARDUINO_IO[1] = step_enable_gated & square_wave_M;
+    assign driver_direction_o = direction_M;
+    assign driver_step_signal_o = step_enable_gated & square_wave_M;
 
 endmodule

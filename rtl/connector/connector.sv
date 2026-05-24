@@ -45,6 +45,18 @@
 // =============================================================================
   
 module connector (
+
+    input        MAX10_CLK1_50,  // 50 HMz clock
+    input  [1:0] KEY,            // Buttons
+    inout  [9:0] ARDUINO_IO,     // Header pins
+    output [9:0] LEDR,           // LEDs
+    input  [9:0] SW,             // Switches
+    output [7:0] HEX0,           // 7-segment display
+    output [7:0] HEX1,           // 7-segment display
+    output [7:0] HEX2,           // 7-segment display
+    output [7:0] HEX3,           // 7-segment display
+    output [7:0] HEX4            // 7-segment display
+
     input  logic        clk_i,      // FPGA system clock (e.g. 50 MHz)
     input  logic        reset_i,    // synchronous active-high reset. Wire to a button on fpga
  
@@ -161,13 +173,48 @@ module connector (
         .reset_i(reset_i),
         .enable_i(driver_enable),
         .direction_i(pid_correction_dir),
-        .correction_i(pid_correction_val)
-        //!!!!!!here also the outputs should be put here, but we need to change those in the driver files!!
+        .correction_i(pid_correction_val),
+        .driver_direction_o(ARDUINO_IO[0]),
+        .driver_step_signal_o(ARDUINO_IO[1])
     );
 
     SimpleRiscExample read_write_registers (
-        // !!!!!!!! ALso here the inputs and outputs of the SimpleRiscExample need to be changed!!
-        // But first merge it, so that we have it all togehter!!!
+        // Clock & reset
+        .MAX10_CLK1_50 (clk_i),            // same 50 MHz clock
+        .KEY           ({1'b1, ~reset_i}), // KEY[0] = active‑low reset
+        // UART (connect to top‑level pins later)
+        .RXD           (uart_rxd_i),       // add this input to connector
+        .TXD           (uart_txd_o),       // add this output to connector
+        // JTAG – leave unconnected if not used
+        .TDI           (1'b0),
+        .TDO           (),
+        .TCK           (1'b0),
+        .TMS           (1'b0),
+        // SDRAM – tie off (RISC‑V won't use it if firmware doesn't)
+        .DRAM_ADDR     (),
+        .DRAM_BA       (),
+        .DRAM_CAS_N    (),
+        .DRAM_CKE      (),
+        .DRAM_CLK      (),
+        .DRAM_CS_N     (),
+        .DRAM_DQ       (16'bz),
+        .DRAM_RAS_N    (),
+        .DRAM_WE_N     (),
+        .DRAM_LDQM     (),
+        .DRAM_UDQM     (),
+        // LEDs, switches, 7‑seg – ignore
+        .LEDR          (),
+        .SW            (10'b0),
+        .HEX0          (),
+        .HEX1          (),
+        .HEX2          (),
+        .HEX3          (),
+        .HEX4          (),
+        // Your custom connections
+        .angle_value   (sensor_angle),      // from SSCSensor
+        .Kp_out        (K_p_i),            // new wire
+        .Ki_out        (K_i_i),            // new wire
+        .Kd_out        (K_d_i)             // new wire
     );
 
 
