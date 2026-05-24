@@ -43,9 +43,10 @@ module SimpleRiscExample(
 
 	// in- and outputs added for reading the angle and writing the coefficients
 	input logic signed [14:0] angle_value,
-	output logic [15:0] Kp_out,
-    output logic [15:0] Ki_out,
-    output logic [15:0] Kd_out
+	output logic [15:0] Kp_write,
+    output logic [15:0] Ki_write,
+    output logic [15:0] Kd_write,
+	output logic [31:0] correction_fpga_cycles_write
 );
 
     logic clk; // the clock (taken from the microcontroller!)
@@ -114,7 +115,7 @@ module SimpleRiscExample(
 	 // CAUTION: Here we only see the last 16 bits of the address!
 	 // The real addresses on teh AXI4 bus are: 0xf0000000, 0xf0000004, ...
 	 // The addresses are always in increments of 4!
-    parameter integer numOfSlaves = 8; 						// ms: increased numOfSlaves from 4 to 8, because we have 3 parameters Kp, Ki, Kd and the angle value from the sensor
+    parameter integer numOfSlaves = 9; 						// ms: increased numOfSlaves from 4 to 9, because we have 3 parameters Kp, Ki, Kd and the angle value from the sensor + constant driving time
     parameter integer addresses_start [numOfSlaves] = '{
         'h4,   // write register to LEDs
         'h8,   // write register to 7-segment displays
@@ -123,7 +124,8 @@ module SimpleRiscExample(
 	    'h10,  // PID Kp
     	'h14,  // PID Ki
     	'h18,   // PID Kd
-		'h1C   // Angle read register
+		'h1C,   // Angle read register
+		'h20
     };
 	 
 	 parameter integer addresses_end [numOfSlaves] = '{
@@ -134,7 +136,8 @@ module SimpleRiscExample(
 		'h10,  // PID Kp
     	'h14,  // PID Ki
     	'h18,   // PID Kd
-		'h1C   // Angle read register
+		'h1C,   // Angle read register
+		'h20
     };
     
     // the slave buses:
@@ -189,6 +192,7 @@ module SimpleRiscExample(
 	logic [31:0] pid_kp_reg;
 	logic [31:0] pid_ki_reg;
 	logic [31:0] pid_kd_reg;
+	logic [31:0] correction_fpga_cycles_write_reg;
 
 	logic [31:0] angle_value_32;
 	assign angle_value_32 = { {17{angle_value[14]}}, angle_value };   // sign‑extend to 32 bits
@@ -207,17 +211,23 @@ module SimpleRiscExample(
 		.bus(slave_buses[6]),
 		.value(pid_kd_reg)
 	);
-
 	
 	// Read register for the angle sensor
 	ApbReadRegister #(.Address(addresses_start[7])) angle_reg (
 		.bus(slave_buses[7]),
 		.value(angle_value_32)   // connects to the new input port
 	);
-		
-	assign Kp_out = pid_kp_reg[15:0];
-	assign Ki_out = pid_ki_reg[15:0];
-	assign Kd_out = pid_kd_reg[15:0];
 
+	
+	ApbWriteRegister #(.Address(addresses_start[8])) reg_correction_fpga_cycles_write (
+		.bus(slave_buses[8]),
+		.value(correction_fpga_cycles_write_reg)
+	);
+		
+	assign Kp_write = pid_kp_reg[15:0];
+	assign Ki_write = pid_ki_reg[15:0];
+	assign Kd_write = pid_kd_reg[15:0];
+	assign correction_fpga_cycles_write = correction_fpga_cycles_write_reg;
+	
 endmodule
 
