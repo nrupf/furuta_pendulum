@@ -6,7 +6,7 @@ module MDriverStateMachine (
         input logic clk_i,
         input logic reset_i,
         input logic enable_i,
-        input logic direction_i,
+        input logic direction_i, 
 
         output logic direction_o,
         output logic step_o
