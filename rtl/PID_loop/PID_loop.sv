@@ -78,8 +78,7 @@
 //   is left to the motor driver or gain tuning.
 // =============================================================================
 
-module PID_loop #(
-)(
+module PID_loop (
     input  logic        clk_i,       // FPGA clock
     input  logic        reset_i,
     input  logic        enable_i,    // pulse high for 1 cycle when a new angle is ready
@@ -259,6 +258,9 @@ module PID_loop #(
                    + i_term
                    + {{16{d_term[31]}}, d_term};
 
+    logic signed [47:0] pid_sum_neg;
+    assign pid_sum_neg = -pid_sum;
+
 
     // saturation bounds — the output is 31-bit magnitude + 1-bit sign,
     // so max magnitude is 2^31 - 1 = 0x7FFF_FFFF
@@ -293,7 +295,7 @@ module PID_loop #(
                 if (pid_sum[47]) begin
                     // Negative PID output → motor goes one direction
                     correction_direction <= 1'b1;
-                    correction_value     <= 31'((-pid_sum)[30:0]);
+                    correction_value     <= pid_sum_neg[30:0];
                 end else begin
                     // Positive PID output → motor goes other direction
                     correction_direction <= 1'b0;

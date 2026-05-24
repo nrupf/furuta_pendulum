@@ -33,6 +33,11 @@ module connector (
 	input           RXD,
 	output          TXD,
 
+    input           TDI,            
+	output          TDO,
+	input           TCK,
+	input           TMS,
+
     // input  logic        clk_i,      // FPGA system clock (e.g. 50 MHz)
     // input  logic        reset_i,    // synchronous active-high reset. Wire to a button on fpga
  
@@ -177,10 +182,10 @@ module connector (
         .RXD           (RXD),       // add this input to connector
         .TXD           (TXD),       // add this output to connector
         // JTAG – leave unconnected if not used
-        .TDI           (1'b0),
-        .TDO           (),
-        .TCK           (1'b0),
-        .TMS           (1'b0),
+        .TDI           (TDI),
+        .TDO           (TDO),
+        .TCK           (TCK),
+        .TMS           (TMS),
         // SDRAM – tie off (RISC‑V won't use it if firmware doesn't)
         .DRAM_ADDR     (),
         .DRAM_BA       (),
@@ -194,13 +199,13 @@ module connector (
         .DRAM_LDQM     (),
         .DRAM_UDQM     (),
         // LEDs, switches, 7‑seg – ignore
-        .LEDR          (),
-        .SW            (10'b0),
-        .HEX0          (),
-        .HEX1          (),
-        .HEX2          (),
-        .HEX3          (),
-        .HEX4          (),
+        //.LEDR          (LEDR),
+        .SW            (SW),
+        .HEX0          (HEX0),
+        .HEX1          (HEX1),
+        .HEX2          (HEX2),
+        .HEX3          (HEX3),
+        .HEX4          (HEX4),
         // Your custom connections
         .angle_value   (sensor_angle_raw),      // from SSCSensor
         .Kp_write        (K_p_write),            // new wire
@@ -228,7 +233,7 @@ module connector (
         .K_p                    (K_p_write),
         .K_i                    (K_i_write),
         .K_d                    (K_d_write),
-        .integral_max           (integral_max_i),
+        .integral_max_i         (integral_max_i),
         .integral_decay_bits    (integral_decay_bits_i),
         .angle_raw_i            (sensor_angle_raw),
         .angle_0                (angle_0_i),
@@ -264,7 +269,7 @@ module connector (
         READ_SENSOR,  // pulse sensor start, wait for sensor done_o
         RUN_PID,      // pulse PID enable, wait for PID done_o
         WAIT_SEND,    // Wait until full correction_period has passed
-        SEND_CORR,    // send correction signal to driver
+        SEND_CORR     // send correction signal to driver
     } state_t;
 
     state_t state;
@@ -283,8 +288,6 @@ module connector (
             sensor_start    <= 1'b0;
             pid_enable      <= 1'b0;
             driver_enable   <= 1'b0;
-            pid_correction_dir <= 1'b0;
-            pid_correction_val <= 1'b0;
         end else begin
  
             // Default: strobe signals are 0 unless we explicitly set them
@@ -357,5 +360,7 @@ module connector (
             endcase
         end
     end
- 
+    
+    assign LEDR[9:0] = angle_raw_o[14:5];
+
 endmodule
