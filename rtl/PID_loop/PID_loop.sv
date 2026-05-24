@@ -290,11 +290,6 @@ module PID_loop #(
                 sat_flag             <= 1'b1;
             end
             else begin
-                // SV NOTE: pid_sum[31] is the sign bit of the 32-bit result.
-                // We split the signed value into direction (sign) + magnitude (remaining bits and if - -> sign conversion).
-                correction_direction <= pid_sum[31];
-                correction_value     <= pid_sum[30:0];
-                sat_flag             <= 1'b0;
                 if (pid_sum[47]) begin
                     // Negative PID output → motor goes one direction
                     correction_direction <= 1'b1;
