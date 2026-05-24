@@ -27,7 +27,11 @@ module connector (
     output [7:0] HEX1,           // 7-segment display
     output [7:0] HEX2,           // 7-segment display
     output [7:0] HEX3,           // 7-segment display
-    output [7:0] HEX4            // 7-segment display
+    output [7:0] HEX4,            // 7-segment display
+
+    // UART
+	input           RXD,
+	output          TXD,
 
     // input  logic        clk_i,      // FPGA system clock (e.g. 50 MHz)
     // input  logic        reset_i,    // synchronous active-high reset. Wire to a button on fpga
@@ -37,10 +41,10 @@ module connector (
     // -------------------------------------------------------------------------
  
     // Control loop frequency:
-    //   correction_fpga_cycles_i: number of clock cycles of FPGA after which motor will start driving a new correction:
-    //                        ex: new signal every 10ms -> correction_fpga_cycles_i = 10ms * 50MHz = 500'000 cycles
+    //   correction_fpga_cycles_write: number of clock cycles of FPGA after which motor will start driving a new correction:
+    //                        ex: new signal every 10ms -> correction_fpga_cycles_write = 10ms * 50MHz = 500'000 cycles
     //                        10s max -> 5e8 cycles -> 32bit is enough
-    // input  logic [31:0] correction_fpga_cycles_i,
+    // input  logic [31:0] correction_fpga_cycles_write,
  
     // Sensor SCK divider — see SSCSensor for formula:
     //   SCK = clk_i / (divider * 2)
@@ -51,33 +55,53 @@ module connector (
     // input  logic [15:0] K_i_i,
     // input  logic [15:0] K_d_i,
  
-    // PID anti-windup and forgetting:
-    input  logic signed [31:0] integral_max_i,  // set to approx 2^20 initially (guess)
-    input  logic [5:0]  integral_decay_bits_i,  // set to approx 4 initially
- 
-    // Calibrated zero angle: the raw sensor reading when pendulum is perfectly upright.
-    // Subtracted inside PID_loop to compute the error around zero.
-    input  logic signed [14:0] angle_0_i,
+    
+
+
+
+    // Optional for step tuning
+
+    /*
  
     // Step scaling: right-shift applied to correction_value before counting steps.
     //   steps_to_send = correction_value >> step_scale_i
     //   Higher step_scale → fewer steps per correction → gentler response.
     //   Start with step_scale = 10 or so (tune from there).
     input  logic [4:0]  step_scale_i,
+    */
  
  
     // -------------------------------------------------------------------------
     // SENSOR INTERFACE — connect directly to TLE5012B pins
     // -------------------------------------------------------------------------
+    // wired
+    /*
     inout  wire         sensor_data_pin,    // bidirectional DATA line
     output logic        sensor_sck_o,       // serial clock to sensor
     output logic        sensor_csq_o,       // chip select (active-low)
+    */
+
+    // -------------------------------------------------------------------------
+    // PID INTERFACE 
+    // -------------------------------------------------------------------------
+    /*
+    OPTIONAL FOR TUNING
+
+    // PID anti-windup and forgetting:
+    input  logic signed [31:0] integral_max_i,  // set to approx 2^20 initially (guess)
+    input  logic [5:0]  integral_decay_bits_i,  // set to approx 4 initially
+
+    currently hardcoded
+
+    */
  
     // -------------------------------------------------------------------------
     // MOTOR INTERFACE — connect to BigEasyDriver STEP and DIR pins
     // -------------------------------------------------------------------------
     // output logic        motor_step_o,       // each rising edge = one microstep
     // output logic        motor_dir_o,        // direction: 0 = CW, 1 = CCW
+
+
  
     // -------------------------------------------------------------------------
     // DEBUG / STATUS OUTPUTS (optional — connect to LEDs or leave open)
@@ -100,26 +124,40 @@ module connector (
     logic [15:0] K_i_write;
     logic [15:0] K_d_write;
 
-    logic [31:0] correction_fpga_cycles_write;
+    //logic uart_rxd_i; // ????????????????
+    //logic uart_txd_o;
 
-    logic uart_rxd_i; // ????????????????
-    logic uart_txd_o;
-
-    logic [7:0]  divider_sensorfreq_i;
-    assign divider_sensorfreq_i = 3'b100; // set to 4 (value for clock division used for SCK)
 
     logic [31:0] correction_fpga_cycles_write; 
 
     // --- Sensor wires ---
+    /// hardcode optional inputs
+    logic [7:0]  divider_sensorfreq_i;
+    assign divider_sensorfreq_i = 8'b100; // set to 4 (value for clock division used for SCK)
+
+
     logic        sensor_start;      // we pulse this to trigger a new sensor read
     logic signed [14:0] sensor_angle_raw;      // 15-bit raw angle, valid when sensor_done=1
     logic        sensor_done;       // sensor pulses this when angle is ready
  
     // --- PID wires ---
+
+    /// Hardcoded optional inputs
+    logic signed [31:0] integral_max_i;  // set to approx 2^20 initially (guess)
+    assign integral_max_i = 32'b00000000000100000000000000000000;
+    logic [5:0]  integral_decay_bits_i;  // set to approx 4 initially
+    assign integral_decay_bits_i = 6'b000100;
+    // Calibrated zero angle: the raw sensor reading when pendulum is perfectly upright.
+    // Subtracted inside PID_loop to compute the error around zero.
+    logic signed [14:0] angle_0_i;
+    assign angle_0_i = 15'b0;   
+
+    /// Other inputs
     logic        pid_enable;        // we pulse this when we have a fresh angle
     logic        pid_correction_dir;  // 0 = positive correction, 1 = negative
     logic [30:0] pid_correction_val;  // magnitude of correction
     logic        pid_done;            // PID pulses this when output is valid
+
 
     // --- driver wires ---
     logic        driver_enable;
@@ -136,8 +174,8 @@ module connector (
         .MAX10_CLK1_50 (clk_i),            // same 50 MHz clock
         .KEY           ({1'b1, ~reset_i}), // KEY[0] = active‑low reset
         // UART (connect to top‑level pins later)
-        .RXD           (uart_rxd_i),       // add this input to connector
-        .TXD           (uart_txd_o),       // add this output to connector
+        .RXD           (RXD),       // add this input to connector
+        .TXD           (TXD),       // add this output to connector
         // JTAG – leave unconnected if not used
         .TDI           (1'b0),
         .TDO           (),
@@ -150,7 +188,7 @@ module connector (
         .DRAM_CKE      (),
         .DRAM_CLK      (),
         .DRAM_CS_N     (),
-        .DRAM_DQ       (16'bz),
+        .DRAM_DQ       (),
         .DRAM_RAS_N    (),
         .DRAM_WE_N     (),
         .DRAM_LDQM     (),
@@ -176,9 +214,9 @@ module connector (
         .reset_i                (reset_i),
         .start_i                (sensor_start),
         .divider_sensorfreq_i   (divider_sensorfreq_i),
-        .data_pin               (sensor_data_pin),
-        .sck_o                  (sensor_sck_o),
-        .csq_o                  (sensor_csq_o),
+        .data_pin               (ARDUINO_IO[7]),
+        .sck_o                  (ARDUINO_IO[8]),
+        .csq_o                  (ARDUINO_IO[9]),
         .angle_raw_o            (sensor_angle_raw),
         .done_o                 (sensor_done)
     );
@@ -232,7 +270,8 @@ module connector (
     state_t state;
 
     // set waiting cycles (0.5ms before sending signal)
-    logic [31:0] wait_readout_fpga_cycles = correction_fpga_cycles_i - 25_000;
+    logic [31:0] wait_readout_fpga_cycles;
+    assign wait_readout_fpga_cycles = correction_fpga_cycles_write - 25_000;
     
     // Counters
     logic [31:0] fpga_cycle_counter;
@@ -240,7 +279,7 @@ module connector (
     always_ff @(posedge clk_i) begin
         if (reset_i) begin
             state           <= IDLE;
-            fpga_cycle_counter <= 1b'0;
+            fpga_cycle_counter <= 32'b0;
             sensor_start    <= 1'b0;
             pid_enable      <= 1'b0;
             driver_enable   <= 1'b0;
@@ -263,13 +302,14 @@ module connector (
                 // The first tick after reset gets us going.
                 // -----------------------------------------------------------------
                 IDLE: begin
+                    fpga_cycle_counter <= 32'b0;
                     state <= WAIT_READOUT;
                 end
 
                 WAIT_READOUT: begin
                     fpga_cycle_counter <= fpga_cycle_counter + 1;
                     if (fpga_cycle_counter == wait_readout_fpga_cycles) begin
-                        sensor_start <= 1;
+                        sensor_start <= 1'b1;
                         state <= READ_SENSOR;
                     end
                 end
@@ -279,6 +319,7 @@ module connector (
                 // We just wait — sensor_done tells us when it's finished.
                 // -----------------------------------------------------------------
                 READ_SENSOR: begin
+                    sensor_start <= 1'b0;
                     fpga_cycle_counter <= fpga_cycle_counter + 1;
                     if (sensor_done) begin
                         // Fresh angle is now in sensor_angle.
@@ -303,13 +344,12 @@ module connector (
                 WAIT_SEND: begin
                     fpga_cycle_counter <= fpga_cycle_counter + 1;
 
-                    if (fpga_cycle_counter >= correction_fpga_cycles_i) begin
+                    if (fpga_cycle_counter >= correction_fpga_cycles_write) begin
                         state <= SEND_CORR;
                     end
                 end
 
                 SEND_CORR: begin
-                    fpga_cycle_counter <= 1'b0;
                     driver_enable <= 1'b1;
                     state <= IDLE;
                 end

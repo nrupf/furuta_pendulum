@@ -26,6 +26,8 @@ module MDriverStateMachine (
 
     state_t state_q, state_d;
 
+    
+
 
     // sequential logic block (the flipflops)
     always_ff @(posedge clk_i) begin

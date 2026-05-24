@@ -22,7 +22,7 @@ module MSignalFreq (
 
 
   always_ff @(posedge clk_i) begin
-    if (reset_i || (divider == '0) || (divider != divider_d)) begin
+    if (reset_i || (divider == 24'b0) || (divider != divider_d)) begin
       counter_q <= 0;
       square_q <= 0;
     end else begin

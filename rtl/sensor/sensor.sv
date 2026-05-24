@@ -63,13 +63,16 @@ module SSCSensor (
     logic        sck_int;       // internal SCK (the actual toggling signal)
     logic [7:0]  sck_counter;
 
+    logic [7:0] max_div_freq;
+    assign max_div_freq = (divider_sensorfreq_i > 8'd4) ? divider_sensorfreq_i : 8'd4; //can't go faster than this
+
 
     always_ff @(posedge clk_i) begin
         if (reset_i) begin
             sck_int     <= 1'b0;
             sck_counter <= '0;
         end else begin
-            if (sck_counter == $max(divider_sensorfreq_i, 8'd4)) begin
+            if (sck_counter == max_div_freq) begin
                 sck_int     <= ~sck_int;   // toggle
                 sck_counter <= '0;
             end else begin
@@ -106,6 +109,7 @@ module SSCSensor (
         IDLE,           // waiting for start_i
         ASSERT_CS,      // CSQ goes low; wait one full SCK period before shifting
         SEND_CMD,       // FPGA shifts out 16-bit command word (one bit per SCK cycle)
+        HOLD_LAST_BIT,  // Keep last written bit on line
         TURNAROUND,     // FPGA releases DATA; sensor prepares to drive
         RECV_DATA,      // sensor shifts in 16-bit angle data word
         RECV_SAFETY,    // sensor shifts in 16-bit safety word (we discard it here)
@@ -163,7 +167,7 @@ module SSCSensor (
 //    When IDLE or DEASSERT_CS, we hold SCK low (sensor expects it idle-low
 //    between transactions).
 // =============================================================================
-    assign sck_o = (state == IDLE || state == ASSERT_CS || state == DEASSERT_CS || state == TURNAROUND)
+    assign sck_o = (state == IDLE || state == ASSERT_CS || state == DEASSERT_CS || state == HOLD_LAST_BIT || state == TURNAROUND)
                    ? 1'b0
                    : sck_int;
 
@@ -240,15 +244,26 @@ module SSCSensor (
                         if (bit_cnt == 15) begin
                             // MSB already on wire from ASSERT_CS — just decrement, don't shift
                             bit_cnt <= bit_cnt - 1;
-                        end else if (bit_cnt == 0) begin
-                            data_oe   <= 1'b0;
-                            delay_cnt <= '0;
-                            state     <= TURNAROUND;
                         end else begin
                             shift_reg <= shift_reg << 1;
                             data_out  <= shift_reg[15];
                             bit_cnt   <= bit_cnt - 1;
                         end
+                    end
+                    if (falling_edge_tick && bit_cnt == 0) begin
+                        state <= HOLD_LAST_BIT;   // new state
+                        delay_cnt <= '0;
+                    end
+                end
+
+                HOLD_LAST_BIT: begin
+                    // DATA still driven here (data_oe still 1)
+                    // hold for tDATAh = 40ns → 2 cycles at 50MHz, use 2 to be safe
+                    delay_cnt <= delay_cnt + 1;
+                    if (delay_cnt == 8'd1) begin
+                        data_oe   <= 1'b0;
+                        delay_cnt <= '0;
+                        state     <= TURNAROUND;
                     end
                 end
 

@@ -10,7 +10,7 @@
 module SimpleRiscExample(
     input           MAX10_CLK1_50,  // 50 HMz clock
     input  [1:0]    KEY,            // Buttons
-    inout  [9:0]    ARDUINO_IO,     // Header pins
+    //inout  [9:0]    ARDUINO_IO,     // Header pins
     output [9:0]    LEDR,           // LEDs
     input  [9:0]    SW,             // Switches
     output [7:0]    HEX0,           // 7-segment dieplay
@@ -62,7 +62,7 @@ module SimpleRiscExample(
 	 // adapt the DRAM_DQM format
 	 logic [1:0] DRAM_DQM;
 	 assign DRAM_LDQM = DRAM_DQM[0];
-	 assign DRAM_HDQM = DRAM_DQM[1];
+	 assign DRAM_UDQM = DRAM_DQM[1];
 	 
 	 // This is our APB master bus from the controller
 	 ApbBus bus();
@@ -167,7 +167,7 @@ module SimpleRiscExample(
 	 // and a read register for the switches:
     ApbReadRegister #(.Address(addresses_start[2])) readReg(.bus(slave_buses[2]), .value((SW)));
 	 
-	 logic [31:0] r_data, w_dara;
+	 logic [31:0] r_data, w_data;
 	 logic [15:0] addr;
 	 logic w_en;
 	 assign w_data = 32'd0;
