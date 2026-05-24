@@ -43,7 +43,7 @@
 //   WAIT_PERIOD  → sit here until the next period tick
 //
 // =============================================================================
- 
+  
 module connector (
     input  logic        clk_i,      // FPGA system clock (e.g. 50 MHz)
     input  logic        reset_i,    // synchronous active-high reset. Wire to a button on fpga
@@ -116,6 +116,8 @@ module connector (
     logic [30:0] pid_correction_val;  // magnitude of correction
     logic        pid_done;            // PID pulses this when output is valid
 
+    // --- driver wires ---
+    logic        driver_enable;
 
 // =============================================================================
 // 2. SUBMODULE INSTANTIATION
@@ -123,6 +125,7 @@ module connector (
 //    When you add APB registers later, you connect those register outputs here
 //    instead of the input ports — nothing else changes.
 // =============================================================================
+
  
     SSCSensor sensor_inst (
         .clk_i                  (clk_i),
@@ -151,6 +154,28 @@ module connector (
         .correction_value       (pid_correction_val),
         .sat_flag               (pid_sat_flag_o),
         .done_o                 (pid_done)
+    );
+
+    MDriver motor_driver (
+        .clk_i(clk_i),
+        .reset_i(reset_i),
+        .enable_i(driver_enable),
+        .direction_i(pid_correction_dir),
+        .correction_i(pid_correction_val)
+        //!!!!!!here also the outputs should be put here, but we need to change those in the driver files!!
+    );
+
+    SimpleRiscExample read_write_registers (
+        // !!!!!!!! ALso here the inputs and outputs of the SimpleRiscExample need to be changed!!
+        // But first merge it, so that we have it all togehter!!!
+    );
+
+
+    // generate the tick (one pulse every 9.5 ms)
+    TickGen #(.DIVIDER(499_999), .REG_W(19)) tickGen(
+        .clk_i  (clk_i),
+        .reset_i(reset_i),
+        .tick_o (period_tick)
     );
  
     typedef enum logic [2:0] {
@@ -185,9 +210,9 @@ module connector (
  
             case (state)
 
-
-            FROM HERE ON OUT NOT EDITED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
- 
+/**
+    FROM HERE ON OUT NOT EDITED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+**/
                 // -----------------------------------------------------------------
                 // IDLE: wait for the period tick that starts a new control cycle.
                 // The first tick after reset gets us going.
