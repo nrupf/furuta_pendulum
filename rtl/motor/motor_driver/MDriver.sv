@@ -25,12 +25,13 @@ module MDriver (
     startup_t startup_state;
 
     always_ff @(posedge clk_i) begin
-        if (reset_i)
+        if (reset_i) begin
             startup_state <= WAITING;
-        else if (startup_state == WAITING && enable_i)
+        end else if (startup_state == WAITING && enable_i) begin
             startup_state <= RUNNING;
         // stays RUNNING forever until next reset
-        default: startup_state <= WAITING;
+        end
+        //default: startup_state <= WAITING;
     end
 
     // -------------------------------------------------------------------------

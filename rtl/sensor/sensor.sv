@@ -260,12 +260,13 @@ module SSCSensor (
                         end
                         */
                     end
-                    if (falling_edge_tick && bit_cnt == 0) begin
+                    /*if (falling_edge_tick && bit_cnt == 0) begin
                         state <= HOLD_LAST_BIT;   // new state
                         delay_cnt <= '0;
-                    end
+                    end */
                 end
 
+                /*
                 HOLD_LAST_BIT: begin
                     // DATA still driven here (data_oe still 1)
                     // hold for tDATAh = 40ns → 2 cycles at 50MHz, use 2 to be safe
@@ -276,7 +277,8 @@ module SSCSensor (
                         state     <= TURNAROUND;
                     end
                 end
-
+                */
+                
                 // -----------------------------------------------------------------
                 // TURNAROUND: datasheet requires twr_delay ≥ 130 ns after last
                 //   command bit before the sensor starts driving DATA.
