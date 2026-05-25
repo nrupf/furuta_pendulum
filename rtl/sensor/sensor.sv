@@ -219,7 +219,7 @@ module SSCSensor (
                     data_oe <= 1'b1;                // FPGA will drive DATA
                     shift_reg <= CMD_READ_AVAL;     // Load shift register with command word, MSB ready to go
                     data_out  <= CMD_READ_AVAL[15]; // ready well before first falling edge
-                    bit_cnt   <= 4'd15;             // we'll count down 15→0
+                    bit_cnt   <= 5'd16;             // we'll count down 16→0
                     delay_cnt <= delay_cnt + 1;     // increase delay count while waiting 105ns
 
                     if (delay_cnt == 8'd6 && rising_edge_tick) begin
@@ -242,6 +242,14 @@ module SSCSensor (
                 // -----------------------------------------------------------------
                 SEND_CMD: begin
                     if (rising_edge_tick) begin
+                        data_out <= CMD_READ_AVAL[bit_cnt-1];
+
+                        if (bit_cnt > 0) bit_cnt <= bit_cnt - 1;
+                        if (bit_cnt == 0) begin
+                            data_oe   <= 1'b0;
+                            state     <= TURNAROUND;
+                        end
+                        /*
                         if (bit_cnt == 15) begin
                             // MSB already on wire from ASSERT_CS — just decrement, don't shift
                             bit_cnt <= bit_cnt - 1;
@@ -250,6 +258,7 @@ module SSCSensor (
                             data_out  <= shift_reg[15];
                             bit_cnt   <= bit_cnt - 1;
                         end
+                        */
                     end
                     if (falling_edge_tick && bit_cnt == 0) begin
                         state <= HOLD_LAST_BIT;   // new state
@@ -302,7 +311,7 @@ module SSCSensor (
                             // data_in has bit [0] from sensor
                             // not a problem to store bits from unsigned shiftreg in signed angle_capture,
                             // as long as no arithmetic is done
-                            angle_capture <= {shift_reg[13:0], data_in};  // 15 bits [14:0]
+                            angle_capture <= {shift_reg[13:0], data_in};  // 15 bits [14:0] bec. we dont care about validity of angle
                             
                             bit_cnt <= 5'd15;
                             state <= RECV_SAFETY;
