@@ -351,6 +351,8 @@ module SSCSensor (
                     end
                 end
 
+                default: state <= IDLE;
+
             endcase
         end
     end

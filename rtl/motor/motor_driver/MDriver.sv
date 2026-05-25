@@ -30,6 +30,7 @@ module MDriver (
         else if (startup_state == WAITING && enable_i)
             startup_state <= RUNNING;
         // stays RUNNING forever until next reset
+        default: startup_state <= WAITING;
     end
 
     // -------------------------------------------------------------------------

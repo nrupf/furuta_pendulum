@@ -176,7 +176,7 @@ module PID_loop (
     // It updates instantly whenever integral or error changes,
     // so the always_ff below always sees the freshly computed value.
     logic signed [31:0] integral_next;
-    assign integral_next = integral - (integral >>> integral_decay_bits) + error;
+    assign integral_next = integral - (integral >>> integral_decay_bits) + current_error;
 
     // s1_done: pulses for 1 cycle when stage 1 has written fresh values to its registers.
     // Stage 3 uses this as its trigger instead of enable_i, so if stage 1 ever takes

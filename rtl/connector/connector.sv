@@ -356,7 +356,8 @@ module connector (
                     driver_enable <= 1'b1;
                     state <= IDLE;
                 end
- 
+
+                default: state <= IDLE;
             endcase
         end
     end
