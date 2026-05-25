@@ -94,8 +94,8 @@ module SSCPrimary (
     );
 
     // Debug: show angle on LEDs (lower 8 bits)
-    assign LEDR[7:0] = angle_o[7:0];
-    assign LEDR[8] = valid_o;
-    assign LEDR[9] = tick;
+    assign LEDR[9:0] = angle_o[14:5];
+    //assign LEDR[8] = valid_o;
+    //assign LEDR[9] = tick;
 
 endmodule
