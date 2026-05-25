@@ -97,11 +97,11 @@ module SSCTransaction (
         sfty_rx_d = sfty_rx_q;
         angle_d   = angle_q;
         valid_d   = 1'b0;  // valid is a one-tick pulse, off by default
+        done_o = 1'b0;
 
         case (state_q)
 
             IDLE: begin
-                done_o = 1'b0;
                 if (start_i) begin
                     cmd_reg_d = CMD_READ_AVAL;  // load command
                     bit_ctr_d = 4'd15;           // start at MSB
@@ -179,7 +179,7 @@ module SSCTransaction (
             // Wait for start_i to go low before accepting a new trigger.
             DONE: begin
                 done_o = 1'b1;
-                if (!start_i) state_d = IDLE;
+                state_d = IDLE;
             end
 
             default: state_d = IDLE;

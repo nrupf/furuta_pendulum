@@ -155,7 +155,7 @@ module connector (
     // Calibrated zero angle: the raw sensor reading when pendulum is perfectly upright.
     // Subtracted inside PID_loop to compute the error around zero.
     logic signed [14:0] angle_0_i;
-    assign angle_0_i = 15'b0;   
+    assign angle_0_i = 15'b001101011000000;
 
     /// Other inputs
     logic        pid_enable;        // we pulse this when we have a fresh angle
@@ -237,13 +237,21 @@ module connector (
     );
     */
 
+    logic [15:0] K_p_set;
+    logic [15:0] K_i_set;
+    logic [15:0] K_d_set;
+
+    assign K_p_set = '1;
+    assign K_i_set = '0;
+    assign K_d_set= '1;
+
     PID_loop pid_inst (
         .clk_i                  (clk_i),
         .reset_i                (reset_i),
         .enable_i               (pid_enable),
-        .K_p                    (K_p_write),
-        .K_i                    (K_i_write),
-        .K_d                    (K_d_write),
+        .K_p                    (K_p_set),
+        .K_i                    (K_i_set),
+        .K_d                    (K_d_set),
         .integral_max_i         (integral_max_i),
         .integral_decay_bits    (integral_decay_bits_i),
         .angle_raw_i            (sensor_angle_raw),
