@@ -245,7 +245,7 @@ module SSCSensor (
                     end
 
                     if (falling_edge_tick) begin
-                        if (bit_cnt == 0)
+                        if (bit_cnt <= 1)
                             state <= TURNAROUND;   // data_oe still 1 here ← hold time starts
                         else
                             bit_cnt <= bit_cnt - 1;
