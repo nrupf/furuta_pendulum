@@ -240,8 +240,9 @@ module SSCSensor (
                 //   half a SCK period by then. Plenty of setup margin.
                 // -----------------------------------------------------------------
                 SEND_CMD: begin
-                    if (rising_edge_tick && bit_cnt > 0)
+                    if (rising_edge_tick && bit_cnt > 0) begin
                         data_out <= CMD_READ_AVAL[bit_cnt - 1];
+                    end
 
                     if (falling_edge_tick) begin
                         if (bit_cnt == 0)
