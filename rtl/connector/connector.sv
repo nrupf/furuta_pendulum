@@ -361,6 +361,6 @@ module connector (
         end
     end
     
-    assign LEDR[9:0] = angle_raw_o[14:5];
+    assign LEDR[9:0] = sensor_angle_raw[14:5];
 
 endmodule

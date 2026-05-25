@@ -109,7 +109,6 @@ module SSCSensor (
         IDLE,           // waiting for start_i
         ASSERT_CS,      // CSQ goes low; wait one full SCK period before shifting
         SEND_CMD,       // FPGA shifts out 16-bit command word (one bit per SCK cycle)
-        HOLD_LAST_BIT,  // Keep last written bit on line
         TURNAROUND,     // FPGA releases DATA; sensor prepares to drive
         RECV_DATA,      // sensor shifts in 16-bit angle data word
         RECV_SAFETY,    // sensor shifts in 16-bit safety word (we discard it here)
@@ -129,8 +128,9 @@ module SSCSensor (
     //   [10]   = 0        (UPD:  current value, not snapshot buffer)
     //   [9:4]  = 6'h02    (ADDR: 0x02 = AVAL register)
     //   [3:0]  = 4'h1     (ND:   1 data word → sensor also appends 1 safety word)
-    localparam logic [15:0] CMD_READ_AVAL = {1'b1, 4'b0000, 1'b0, 6'h02, 4'h1};
+    //localparam logic [15:0] CMD_READ_AVAL = {1'b1, 4'b0000, 1'b0, 6'h02, 4'h1};
     //                                       RW    Lock      UPD   ADDR   ND
+    localparam logic [15:0] CMD_READ_AVAL = 16'h8021;
 
     logic [15:0] shift_reg;      // multi-purpose: holds command during TX, data during RX
     logic [4:0]  bit_cnt;        // counts bits shifted (0..15 = 16 bits per word)
@@ -167,7 +167,7 @@ module SSCSensor (
 //    When IDLE or DEASSERT_CS, we hold SCK low (sensor expects it idle-low
 //    between transactions).
 // =============================================================================
-    assign sck_o = (state == IDLE || state == ASSERT_CS || state == DEASSERT_CS || state == HOLD_LAST_BIT || state == TURNAROUND)
+    assign sck_o = (state == IDLE || state == ASSERT_CS || state == DEASSERT_CS || state == TURNAROUND)
                    ? 1'b0
                    : sck_int;
 
@@ -218,10 +218,10 @@ module SSCSensor (
                     data_oe <= 1'b1;                // FPGA will drive DATA
                     shift_reg <= CMD_READ_AVAL;     // Load shift register with command word, MSB ready to go
                     data_out  <= CMD_READ_AVAL[15]; // ready well before first falling edge
-                    bit_cnt   <= 4'd15;             // we'll count down 15→0
+                    bit_cnt   <= 5'd16;             // we'll count down 16→0
                     delay_cnt <= delay_cnt + 1;     // increase delay count while waiting 105ns
 
-                    if (delay_cnt == 8'd6 && rising_edge_tick) begin
+                    if (delay_cnt == 8'd6 && falling_edge_tick) begin
                         delay_cnt <= '0;
                         state     <= SEND_CMD;
                     end
@@ -240,46 +240,38 @@ module SSCSensor (
                 //   half a SCK period by then. Plenty of setup margin.
                 // -----------------------------------------------------------------
                 SEND_CMD: begin
-                    if (rising_edge_tick) begin
-                        if (bit_cnt == 15) begin
-                            // MSB already on wire from ASSERT_CS — just decrement, don't shift
+                    if (rising_edge_tick && bit_cnt > 0)
+                        data_out <= CMD_READ_AVAL[bit_cnt - 1];
+
+                    if (falling_edge_tick) begin
+                        if (bit_cnt == 0)
+                            state <= TURNAROUND;   // data_oe still 1 here ← hold time starts
+                        else
                             bit_cnt <= bit_cnt - 1;
-                        end else begin
-                            shift_reg <= shift_reg << 1;
-                            data_out  <= shift_reg[15];
-                            bit_cnt   <= bit_cnt - 1;
-                        end
-                    end
-                    if (falling_edge_tick && bit_cnt == 0) begin
-                        state <= HOLD_LAST_BIT;   // new state
-                        delay_cnt <= '0;
                     end
                 end
 
-                HOLD_LAST_BIT: begin
-                    // DATA still driven here (data_oe still 1)
-                    // hold for tDATAh = 40ns → 2 cycles at 50MHz, use 2 to be safe
-                    delay_cnt <= delay_cnt + 1;
-                    if (delay_cnt == 8'd1) begin
-                        data_oe   <= 1'b0;
-                        delay_cnt <= '0;
-                        state     <= TURNAROUND;
-                    end
-                end
+                
 
                 // -----------------------------------------------------------------
                 // TURNAROUND: datasheet requires twr_delay ≥ 130 ns after last
                 //   command bit before the sensor starts driving DATA.
                 //   We simply count clk_i cycles. At 50 MHz, 8 cycles = 160 ns 
                 // -----------------------------------------------------------------
+                
                 TURNAROUND: begin
                     delay_cnt <= delay_cnt + 1;
+
+                    if (delay_cnt == 8'd2)
+                        data_oe <= 1'b0;           // release after 2 cycles = 40 ns ✓
+
                     if (delay_cnt == 8'd8) begin
                         delay_cnt <= 8'd0;
-                        bit_cnt <= 5'd15;       // prepare to receive 16 bits
-                        state   <= RECV_DATA;
+                        bit_cnt   <= 5'd15;
+                        state     <= RECV_DATA;
                     end
                 end
+                
 
                 // -----------------------------------------------------------------
                 // RECV_DATA: sample 16 bits from sensor.
@@ -301,7 +293,7 @@ module SSCSensor (
                             // data_in has bit [0] from sensor
                             // not a problem to store bits from unsigned shiftreg in signed angle_capture,
                             // as long as no arithmetic is done
-                            angle_capture <= {shift_reg[13:0], data_in};  // 15 bits [14:0]
+                            angle_capture <= {shift_reg[13:0], data_in};  // 15 bits [14:0] bec. we dont care about validity of angle
                             
                             bit_cnt <= 5'd15;
                             state <= RECV_SAFETY;
@@ -350,6 +342,8 @@ module SSCSensor (
                         state     <= IDLE;
                     end
                 end
+
+                default: state <= IDLE;
 
             endcase
         end
