@@ -14,10 +14,16 @@
  Marvin Schmidiger, April 2026
 ***/
 module SSCPrimary (
+    /*
     input           MAX10_CLK1_50,  // 50 MHz system clock (DE10-Lite)
     output [9:0]    LEDR,            // LEDs
     inout [9:0]     ARDUINO_IO
+    */
+    input logic clk_i,
+    output logic [9:0] leds_o,
+    inout [9:7] ARDUINO_IO
 );
+
     logic                   clk_i;
     logic                   reset_i;        // active-high synchronous reset
     logic                   start_i;        // trigger one read transaction (hold high)
@@ -38,7 +44,7 @@ module SSCPrimary (
     assign data_in = ARDUINO_IO[7];
     assign ARDUINO_IO[8] = sck_o;
     assign ARDUINO_IO[9] = csq_o;
-    assign clk_i = MAX10_CLK1_50;
+    // assign clk_i = MAX10_CLK1_50;
 
     // Generate a reset pulse on power-up
     ResetGenerator resetGenerator(
@@ -94,7 +100,7 @@ module SSCPrimary (
     );
 
     // Debug: show angle on LEDs (lower 8 bits)
-    assign LEDR[9:0] = angle_o[14:5];
+    //assign LEDR[9:0] = angle_o[14:5];
     //assign LEDR[8] = valid_o;
     //assign LEDR[9] = tick;
 

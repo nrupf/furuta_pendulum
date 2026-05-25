@@ -218,7 +218,7 @@ module SSCSensor (
                     data_oe <= 1'b1;                // FPGA will drive DATA
                     shift_reg <= CMD_READ_AVAL;     // Load shift register with command word, MSB ready to go
                     data_out  <= CMD_READ_AVAL[15]; // ready well before first falling edge
-                    bit_cnt   <= 4'd15;             // we'll count down 15→0
+                    bit_cnt   <= 5'd16;             // we'll count down 16→0
                     delay_cnt <= delay_cnt + 1;     // increase delay count while waiting 105ns
 
                     if (delay_cnt == 8'd6 && rising_edge_tick) begin
@@ -241,6 +241,14 @@ module SSCSensor (
                 // -----------------------------------------------------------------
                 SEND_CMD: begin
                     if (rising_edge_tick) begin
+                        data_out <= CMD_READ_AVAL[bit_cnt-1];
+
+                        if (bit_cnt > 0) bit_cnt <= bit_cnt - 1;
+                        if (bit_cnt == 0) begin
+                            data_oe   <= 1'b0;
+                            state     <= TURNAROUND;
+                        end
+                        /*
                         if (bit_cnt == 15) begin
                             // MSB already on wire from ASSERT_CS — just decrement, don't shift
                             bit_cnt <= bit_cnt - 1;
@@ -249,13 +257,15 @@ module SSCSensor (
                             data_out  <= shift_reg[15];
                             bit_cnt   <= bit_cnt - 1;
                         end
+                        */
                     end
-                    if (falling_edge_tick && bit_cnt == 0) begin
+                    /*if (falling_edge_tick && bit_cnt == 0) begin
                         state <= HOLD_LAST_BIT;   // new state
                         delay_cnt <= '0;
-                    end
+                    end */
                 end
 
+                /*
                 HOLD_LAST_BIT: begin
                     // DATA still driven here (data_oe still 1)
                     // hold for tDATAh = 40ns → 2 cycles at 50MHz, use 2 to be safe
@@ -266,7 +276,8 @@ module SSCSensor (
                         state     <= TURNAROUND;
                     end
                 end
-
+                */
+                
                 // -----------------------------------------------------------------
                 // TURNAROUND: datasheet requires twr_delay ≥ 130 ns after last
                 //   command bit before the sensor starts driving DATA.
@@ -280,7 +291,7 @@ module SSCSensor (
                         state   <= RECV_DATA;
                     end
                 end
-
+                
                 // -----------------------------------------------------------------
                 // RECV_DATA: sample 16 bits from sensor.
                 //   - Sensor puts data on line after rising edge

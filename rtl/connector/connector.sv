@@ -213,7 +213,15 @@ module connector (
         .Kd_write        (K_d_write),             // new wire
         .correction_fpga_cycles_write(correction_fpga_cycles_write)
     );
- 
+
+    SSCPrimary sensor_inst (
+        .clk_i(clk_i),
+        .reset_i(reset_i),
+        .leds_o(LEDR[9:0]),
+        .ARDUINO_IO(ARDUINO_IO[9:7])
+    );
+
+    /*
     SSCSensor sensor_inst (
         .clk_i                  (clk_i),
         .reset_i                (reset_i),
@@ -225,7 +233,8 @@ module connector (
         .angle_raw_o            (sensor_angle_raw),
         .done_o                 (sensor_done)
     );
- 
+    */
+
     PID_loop pid_inst (
         .clk_i                  (clk_i),
         .reset_i                (reset_i),
