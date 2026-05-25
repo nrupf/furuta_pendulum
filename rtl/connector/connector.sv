@@ -218,7 +218,9 @@ module connector (
         .clk_i(clk_i),
         .reset_i(reset_i),
         .leds_o(LEDR[9:0]),
-        .ARDUINO_IO(ARDUINO_IO[9:7])
+        .ARDUINO_IO(ARDUINO_IO[9:7]),
+        .angle_raw_o(sensor_angle_raw),
+        .done_o(sensor_done)
     );
 
     /*
@@ -370,6 +372,6 @@ module connector (
         end
     end
     
-    assign LEDR[9:0] = angle_raw_o[14:5];
+    //assign LEDR[9:0] = angle_raw_o[14:5];
 
 endmodule

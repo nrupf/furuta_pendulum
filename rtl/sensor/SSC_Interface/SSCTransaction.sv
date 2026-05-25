@@ -32,7 +32,8 @@ module SSCTransaction (
     output logic        csq_o,       // SSC chip select to sensor (CSQ pin, active LOW)
     output logic        data_out,    // bit to drive onto the DATA line
     output logic        data_oe,     // output enable: 1=drive DATA, 0=hi-Z (sensor drives)
-    input  logic        data_in      // bit received from the DATA line
+    input  logic        data_in,      // bit received from the DATA line
+    output logic        done_o
 );
 
     // Read AVAL register command word:
@@ -100,6 +101,7 @@ module SSCTransaction (
         case (state_q)
 
             IDLE: begin
+                done_o = 1'b0;
                 if (start_i) begin
                     cmd_reg_d = CMD_READ_AVAL;  // load command
                     bit_ctr_d = 4'd15;           // start at MSB
@@ -176,6 +178,7 @@ module SSCTransaction (
             // DONE: CSQ=1 (deasserted). Hold angle until next transaction.
             // Wait for start_i to go low before accepting a new trigger.
             DONE: begin
+                done_o = 1'b1;
                 if (!start_i) state_d = IDLE;
             end
 

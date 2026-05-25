@@ -20,12 +20,15 @@ module SSCPrimary (
     inout [9:0]     ARDUINO_IO
     */
     input logic clk_i,
+    input logic reset_i,
     output logic [9:0] leds_o,
-    inout [9:7] ARDUINO_IO
+    inout [9:7] ARDUINO_IO,
+    output logic signed [14:0] angle_raw_o,      // 15-bit angle, valid when done_o=1
+    output logic done_o                   // pulses high for 1 clk_i cycle when angle ready
 );
 
-    logic                   clk_i;
-    logic                   reset_i;        // active-high synchronous reset
+    //logic                   clk_i;
+    //logic                   reset_i;        // active-high synchronous reset
     logic                   start_i;        // trigger one read transaction (hold high)
     logic unsigned [14:0]   angle_o;        // 15-bit angle result (AVAL[14:0])
     logic                   valid_o;        // 1 for one tick when angle_o is fresh
@@ -47,11 +50,12 @@ module SSCPrimary (
     // assign clk_i = MAX10_CLK1_50;
 
     // Generate a reset pulse on power-up
+    /*
     ResetGenerator resetGenerator(
         .clk_i  (clk_i),
         .reset_o(reset_i)
     );
-
+ */
     // ── Tick generator ────────────────────────────────────────────────────
     // DIVIDER = 50: tick fires once every 50 system clocks = 1 MHz tick.
     // Each FSM state lasts one tick → SCK frequency = tick / 2 = 500 kHz.
@@ -96,11 +100,13 @@ module SSCPrimary (
         .csq_o   (csq_o),
         .data_out(data_out),
         .data_oe (data_oe),
-        .data_in (data_in)
+        .data_in (data_in),
+        .done_o (done_o)
     );
 
     // Debug: show angle on LEDs (lower 8 bits)
-    //assign LEDR[9:0] = angle_o[14:5];
+    assign leds_o[9:0] = angle_o[14:5];
+    assign angle_raw_o = angle_o;
     //assign LEDR[8] = valid_o;
     //assign LEDR[9] = tick;
 
