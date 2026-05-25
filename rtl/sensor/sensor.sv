@@ -129,8 +129,9 @@ module SSCSensor (
     //   [10]   = 0        (UPD:  current value, not snapshot buffer)
     //   [9:4]  = 6'h02    (ADDR: 0x02 = AVAL register)
     //   [3:0]  = 4'h1     (ND:   1 data word → sensor also appends 1 safety word)
-    localparam logic [15:0] CMD_READ_AVAL = {1'b1, 4'b0000, 1'b0, 6'h02, 4'h1};
+    //localparam logic [15:0] CMD_READ_AVAL = {1'b1, 4'b0000, 1'b0, 6'h02, 4'h1};
     //                                       RW    Lock      UPD   ADDR   ND
+    localparam logic [15:0] CMD_READ_AVAL = 16'h8021;
 
     logic [15:0] shift_reg;      // multi-purpose: holds command during TX, data during RX
     logic [4:0]  bit_cnt;        // counts bits shifted (0..15 = 16 bits per word)
