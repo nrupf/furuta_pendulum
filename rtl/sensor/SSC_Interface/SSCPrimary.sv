@@ -21,7 +21,7 @@ module SSCPrimary (
     */
     input logic clk_i,
     input logic reset_i,
-    output logic [9:0] leds_o,
+    output logic [9:2] leds_o,
     inout [9:7] ARDUINO_IO,
     output logic signed [14:0] angle_raw_o,      // 15-bit angle, valid when done_o=1
     output logic done_o                   // pulses high for 1 clk_i cycle when angle ready
@@ -105,7 +105,7 @@ module SSCPrimary (
     );
 
     // Debug: show angle on LEDs (lower 8 bits)
-    assign leds_o[9:0] = angle_o[14:5];
+    assign leds_o[9:2] = angle_o[14:5];
     assign angle_raw_o = angle_o;
     //assign LEDR[8] = valid_o;
     //assign LEDR[9] = tick;

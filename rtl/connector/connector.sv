@@ -132,8 +132,9 @@ module connector (
     //logic uart_rxd_i; // ????????????????
     //logic uart_txd_o;
 
-
+    logic [31:0] correction_fpga_cycles_write_dummy_variable; // only a unused variable, because as of now unsure, if APB Bus really does what it is intended to, therefore, only give it an unused variable for now (quick fix)
     logic [31:0] correction_fpga_cycles_write; 
+    assign correction_fpga_cycles_write = 32'd500000;
 
     // --- Sensor wires ---
     /// hardcode optional inputs
@@ -211,13 +212,13 @@ module connector (
         .Kp_write        (K_p_write),            // new wire
         .Ki_write        (K_i_write),            // new wire
         .Kd_write        (K_d_write),             // new wire
-        .correction_fpga_cycles_write(correction_fpga_cycles_write)
+        .correction_fpga_cycles_write(correction_fpga_cycles_write_dummy_variable)
     );
 
     SSCPrimary sensor_inst (
         .clk_i(clk_i),
         .reset_i(reset_i),
-        .leds_o(LEDR[9:0]),
+        .leds_o(LEDR[9:2]),
         .ARDUINO_IO(ARDUINO_IO[9:7]),
         .angle_raw_o(sensor_angle_raw),
         .done_o(sensor_done)
@@ -237,13 +238,14 @@ module connector (
     );
     */
 
+    // New Variables for the PID coefficients (quick fix), since the APB Bus is at the moment not reliable
     logic [15:0] K_p_set;
     logic [15:0] K_i_set;
     logic [15:0] K_d_set;
 
-    assign K_p_set = '1;
-    assign K_i_set = '0;
-    assign K_d_set= '1;
+    assign K_p_set = 16'd1;
+    assign K_i_set = 16'd0;
+    assign K_d_set = 16'd0;
 
     PID_loop pid_inst (
         .clk_i                  (clk_i),
@@ -262,6 +264,7 @@ module connector (
         .done_o                 (pid_done)
     );
 
+    
     MDriver motor_driver (
         .clk_i(clk_i),
         .reset_i(reset_i),
@@ -316,9 +319,6 @@ module connector (
  
             case (state)
 
-/**
-    FROM HERE ON OUT NOT EDITED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-**/
                 // -----------------------------------------------------------------
                 // IDLE: wait for the period tick that starts a new control cycle.
                 // The first tick after reset gets us going.
@@ -380,6 +380,8 @@ module connector (
         end
     end
     
+    assign LEDR[0] = pid_correction_dir;
+    //assign LEDR[0] = 1'b1;
     //assign LEDR[9:0] = angle_raw_o[14:5];
 
 endmodule

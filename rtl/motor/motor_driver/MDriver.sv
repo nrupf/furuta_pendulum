@@ -14,7 +14,7 @@ module MDriver (
     );
 
     logic square_wave_M;
-    logic [24:0] divider;
+    logic [31:0] divider;
 
     // -------------------------------------------------------------------------
     // STARTUP STATE MACHINE
@@ -35,17 +35,17 @@ module MDriver (
     // -------------------------------------------------------------------------
     // LOOK-UP TABLE: correction magnitude → step frequency divider
     // -------------------------------------------------------------------------
-    localparam logic [24:0] DIV0  = 0;       // 0 Hz (motor off)
-    localparam logic [24:0] DIV1  = 250000;  // 100 Hz
-    localparam logic [24:0] DIV2  = 125000;  // 200 Hz
-    localparam logic [24:0] DIV3  = 83333;   // 300 Hz
-    localparam logic [24:0] DIV4  = 62500;   // 400 Hz
-    localparam logic [24:0] DIV5  = 50000;   // 500 Hz
-    localparam logic [24:0] DIV6  = 41666;   // 600 Hz
-    localparam logic [24:0] DIV7  = 35714;   // 700 Hz
-    localparam logic [24:0] DIV8  = 31250;   // 800 Hz
-    localparam logic [24:0] DIV9  = 27777;   // 900 Hz
-    localparam logic [24:0] DIV10 = 25000;   // 1000 Hz
+    localparam logic [31:0] DIV0  = 0;       // 0 Hz (motor off)
+    localparam logic [31:0] DIV1  = 250000;  // 100 Hz
+    localparam logic [31:0] DIV2  = 125000;  // 200 Hz
+    localparam logic [31:0] DIV3  = 83333;   // 300 Hz
+    localparam logic [31:0] DIV4  = 62500;   // 400 Hz
+    localparam logic [31:0] DIV5  = 50000;   // 500 Hz
+    localparam logic [31:0] DIV6  = 41666;   // 600 Hz
+    localparam logic [31:0] DIV7  = 35714;   // 700 Hz
+    localparam logic [31:0] DIV8  = 31250;   // 800 Hz
+    localparam logic [31:0] DIV9  = 27777;   // 900 Hz
+    localparam logic [31:0] DIV10 = 25000;   // 1000 Hz
 
     logic [4:0] msb_pos;
     logic       mag_nonzero;
@@ -62,7 +62,7 @@ module MDriver (
         end
     end
 
-    logic [24:0] divider_from_correction;
+    logic [31:0] divider_from_correction;
     always_comb begin
         if (!mag_nonzero)
             divider_from_correction = DIV0;

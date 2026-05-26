@@ -5,7 +5,7 @@
 module MSignalFreq (
     input logic clk_i,
     input logic reset_i, 
-    input logic [24:0] divider,
+    input logic [31:0] divider,
 
     output logic square_wave_o
   );
@@ -13,24 +13,27 @@ module MSignalFreq (
   // The counter register
   logic unsigned [31:0] counter_q; // We just use [31:0] so 32 bit number, such that we are sure we have enough space, as could only set this using a parameter, but this would only work during compile time, so just fix enough space, such that we do not run into problems here
   logic square_q;
-  logic [24:0] divider_d;          // delay line to detect changes
+  //logic [31:0] divider_d;          // delay line to detect changes
 
   // Register the previous divider value
+  /*
   always_ff @(posedge clk_i) begin
       divider_d <= divider;
   end
-
+  */
 
   always_ff @(posedge clk_i) begin
-    if (reset_i || (divider == 24'b0) || (divider != divider_d)) begin
+    //if (reset_i || (divider == 24'b0) || (divider != divider_d)) begin
+    if (reset_i || (divider == 32'b0)) begin
       counter_q <= 0;
       square_q <= 0;
     end else begin
-      if(counter_q == divider-1) begin
+      //if(counter_q == divider-1) begin
+      if(counter_q >= divider - 32'd1) begin
         counter_q <= 0;
         square_q <= ~square_q;
       end else begin
-        counter_q <= counter_q + 'd1;
+        counter_q <= counter_q + 32'd1;
       end
     end
   end  // ff

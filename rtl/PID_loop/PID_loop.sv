@@ -151,8 +151,8 @@ module PID_loop (
     // Wrap correction: if the difference is > +180° or < -180°, wrap it back
     // +16384 corresponds to 180°
     always_comb begin
-        if      (raw_diff >  16'd16383) current_error = raw_diff - 16'd32768;
-        else if (raw_diff < -16'd16383) current_error = raw_diff + 16'd32768;
+        if      (raw_diff >  16'sd16383) current_error = raw_diff - 16'd32768;
+        else if (raw_diff < -16'sd16383) current_error = raw_diff + 16'd32768;
         else                            current_error = raw_diff;
     end
 

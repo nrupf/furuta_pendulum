@@ -1,0 +1,6 @@
+<testsuites name="results">
+  <testsuite name="all" package="all">
+    <property name="random_seed" value="1779785621" />
+    <testcase name="MSignalFreq" classname="MSignalFreq" file="/mnt/c/Users/marvi/Desktop/fpga_exercises/PRJ/furuta_pendulum/rtl/motor/motor_driver/simulation_MSignalFreq/MSignalFreq.py" lineno="13" time="0.1519479751586914" sim_time_ns="80511.0" ratio_time="529858.985721369" />
+  </testsuite>
+</testsuites>
