@@ -61,7 +61,7 @@ module SSCPrimary (
     // Each FSM state lasts one tick → SCK frequency = tick / 2 = 500 kHz.
     // 500 kHz is well within the TLE5012B's 8 Mbit/s SSC limit.
     // REG_W = 6: counter only needs to reach 49 (fits in 6 bits).
-    TickGen #(.DIVIDER(50), .REG_W(6)) u_tickgen (
+    TickGen #(.DIVIDER(8), .REG_W(6)) u_tickgen (
         .clk_i  (clk_i),
         .reset_i(reset_i),           
         .tick_o (tick)          // 1 MHz tick for FSM states

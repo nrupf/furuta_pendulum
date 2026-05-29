@@ -95,13 +95,15 @@ module PID_loop (
     // set to ca 4 (guess). 6 bits is enough since max meaningful shift is ~32
     input  logic [5:0]  integral_decay_bits,
 
-    input  logic signed [14:0] angle_raw_i,   // raw angle input
-    input  logic signed [14:0] angle_0,       // calibrated zero angle
+    input  logic [14:0] angle_raw_i,   // raw angle input
+    input  logic [14:0] angle_0,       // calibrated zero angle
 
     output logic        correction_direction,  // sign of correction: 0 = positive, 1 = negative
     output logic [30:0] correction_value,      // magnitude of correction
     output logic        sat_flag,              // high when output is clamped
-    output logic        done_o                 // pulses high for 1 cycle when output is valid
+    output logic        done_o,                 // pulses high for 1 cycle when output is valid
+
+    output logic [15:0] test_raw_diff
 );
 
 
@@ -112,10 +114,9 @@ module PID_loop (
     // when done, pulses s1_done for exactly 1 cycle to trigger stage 3
     // =========================================================================
 
-    // Both angle_raw_i and angle_0 arrive as signed 15-bit two's complement values
-    // (range: -16384 to +16383, where 0 = 0°, +16383 ≈ +180°, -16384 = -180°).
-    // We sign-extend them to 16 bits by replicating bit 14 (the sign bit) into
-    // bit 15 — this preserves the signed value in a wider register.
+    // Both angle_raw_i and angle_0 arrive as unsigned 15-bit  values
+    // (range: +32767 ≈ +180°, 0 = -180°).
+    // We sign-extend them to 16 bits.
     // The bits themselves are unchanged; the extra bit just prevents overflow
     // during the subtraction below.
     //
@@ -135,30 +136,30 @@ module PID_loop (
     // Result range: -16383 to +16383
     
 
-    logic signed [15:0] angle_raw_15bit;
-    logic signed [15:0] angle_0_15bit;
+    logic signed [15:0] angle_raw_16bit;
+    logic signed [15:0] angle_0_16bit;
 
     // Reinterpret the 15-bit values as signed (sign-extend bit 14)
     //   angle_raw_i and angle_0 were also signed but only 15bit
-    assign angle_raw_15bit   = $signed({{1{angle_raw_i[14]}}, angle_raw_i});
-    assign angle_0_15bit = $signed({{1{angle_0[14]}},     angle_0});
+    assign angle_raw_16bit   = $signed({1'b0, angle_raw_i});
+    assign angle_0_16bit = $signed({1'b0, angle_0});
 
     // Signed subtraction
     logic signed [15:0] raw_diff;
-    assign raw_diff = angle_raw_15bit - angle_0_15bit;
+    assign raw_diff = angle_raw_16bit - angle_0_16bit;
 
     logic signed [15:0] current_error;
     // Wrap correction: if the difference is > +180° or < -180°, wrap it back
     // +16384 corresponds to 180°
     always_comb begin
         if      (raw_diff >  16'sd16383) current_error = raw_diff - 16'd32768;
-        else if (raw_diff < -16'sd16383) current_error = raw_diff + 16'd32768;
-        else                            current_error = raw_diff;
+        else if (raw_diff < -16'sd16384) current_error = raw_diff + 16'd32768;
+        else                             current_error = raw_diff;
     end
 
 
-    
-
+   assign test_raw_diff = raw_diff; 
+   
     logic signed [15:0] error;           // error from previous cycle (registered)
     logic signed [15:0] previous_error;
     logic signed [15:0] derivative;
@@ -176,7 +177,7 @@ module PID_loop (
     // It updates instantly whenever integral or error changes,
     // so the always_ff below always sees the freshly computed value.
     logic signed [31:0] integral_next;
-    assign integral_next = integral - (integral >>> integral_decay_bits) + error;
+    assign integral_next = integral - (integral >>> integral_decay_bits) + current_error;
 
     // s1_done: pulses for 1 cycle when stage 1 has written fresh values to its registers.
     // Stage 3 uses this as its trigger instead of enable_i, so if stage 1 ever takes

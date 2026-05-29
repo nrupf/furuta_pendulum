@@ -134,7 +134,7 @@ module connector (
 
     logic [31:0] correction_fpga_cycles_write_dummy_variable; // only a unused variable, because as of now unsure, if APB Bus really does what it is intended to, therefore, only give it an unused variable for now (quick fix)
     logic [31:0] correction_fpga_cycles_write; 
-    assign correction_fpga_cycles_write = 32'd500000;
+    assign correction_fpga_cycles_write = 32'd500000; //32'd200000; 
 
     // --- Sensor wires ---
     /// hardcode optional inputs
@@ -143,7 +143,7 @@ module connector (
 
 
     logic        sensor_start;      // we pulse this to trigger a new sensor read
-    logic signed [14:0] sensor_angle_raw;      // 15-bit raw angle, valid when sensor_done=1
+    logic [14:0] sensor_angle_raw;      // 15-bit raw angle, valid when sensor_done=1
     logic        sensor_done;       // sensor pulses this when angle is ready
  
     // --- PID wires ---
@@ -155,8 +155,8 @@ module connector (
     assign integral_decay_bits_i = 6'b000100;
     // Calibrated zero angle: the raw sensor reading when pendulum is perfectly upright.
     // Subtracted inside PID_loop to compute the error around zero.
-    logic signed [14:0] angle_0_i;
-    assign angle_0_i = 15'b001101011000000;
+    logic [14:0] angle_0_i;
+    assign angle_0_i = 15'b001101011000000; // 15'b101111000100000; //110110110000000;
 
     /// Other inputs
     logic        pid_enable;        // we pulse this when we have a fresh angle
@@ -215,10 +215,12 @@ module connector (
         .correction_fpga_cycles_write(correction_fpga_cycles_write_dummy_variable)
     );
 
+    logic [9:2] del_this_var;
+
     SSCPrimary sensor_inst (
         .clk_i(clk_i),
         .reset_i(reset_i),
-        .leds_o(LEDR[9:2]),
+        .leds_o(del_this_var), // .leds_o(LEDR[9:2]),
         .ARDUINO_IO(ARDUINO_IO[9:7]),
         .angle_raw_o(sensor_angle_raw),
         .done_o(sensor_done)
@@ -243,9 +245,21 @@ module connector (
     logic [15:0] K_i_set;
     logic [15:0] K_d_set;
 
-    assign K_p_set = 16'd1;
+    // If using U8.8 format (8 fractional bits)
+    localparam logic [15:0] Kp = 16'(10.0 * 256);     // 3.0 in U8.8
+    localparam logic [15:0] Ki = 16'(0.0 * 256);     // 0.0 // 0.001
+    localparam logic [15:0] Kd = 16'(10.0 * 256);     // 0.3 -> rounds to 77
+
+    assign K_p_set = Kp;
+    assign K_i_set = Ki;
+    assign K_d_set = Kd;
+
+    logic [15:0] testing_diff_value;
+    /*
+    assign K_p_set = 16'd3;
     assign K_i_set = 16'd0;
-    assign K_d_set = 16'd0;
+    assign K_d_set = 16'd0.3;
+    */
 
     PID_loop pid_inst (
         .clk_i                  (clk_i),
@@ -261,7 +275,8 @@ module connector (
         .correction_direction   (pid_correction_dir),
         .correction_value       (pid_correction_val),
         .sat_flag               (pid_sat_flag_o),
-        .done_o                 (pid_done)
+        .done_o                 (pid_done),
+        .test_raw_diff          (testing_diff_value)
     );
 
     
@@ -380,8 +395,9 @@ module connector (
         end
     end
     
-    assign LEDR[0] = pid_correction_dir;
+    // assign LEDR[0] = pid_correction_dir;
     //assign LEDR[0] = 1'b1;
     //assign LEDR[9:0] = angle_raw_o[14:5];
+    assign LEDR[9:0] = testing_diff_value[14:5];
 
 endmodule
