@@ -282,24 +282,24 @@ module PID_loop (
         else if (s1_done) begin
             if (pid_sum > OUTMAX) begin
                 // clamp to maximum positive correction
-                correction_direction <= 1'b0;
+                correction_direction <= 1'b1; // 1'b0;
                 correction_value     <= 31'h7FFF_FFFF;
                 sat_flag             <= 1'b1;
             end
             else if (pid_sum < OUTMIN) begin
                 // clamp to maximum negative correction (direction=1, full magnitude)
-                correction_direction <= 1'b1;
+                correction_direction <= 1'b0; // 1'b1;
                 correction_value     <= 31'h7FFF_FFFF;
                 sat_flag             <= 1'b1;
             end
             else begin
                 if (pid_sum[47]) begin
                     // Negative PID output → motor goes one direction
-                    correction_direction <= 1'b1;
+                    correction_direction <= 1'b0; // 1'b1;
                     correction_value     <= pid_sum_neg[30:0];
                 end else begin
                     // Positive PID output → motor goes other direction
-                    correction_direction <= 1'b0;
+                    correction_direction <= 1'b1; // 1'b0;
                     correction_value     <= pid_sum[30:0];
                 end
                 sat_flag <= 1'b0;

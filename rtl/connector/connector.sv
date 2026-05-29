@@ -246,9 +246,9 @@ module connector (
     logic [15:0] K_d_set;
 
     // If using U8.8 format (8 fractional bits)
-    localparam logic [15:0] Kp = 16'(10.0 * 256);     // 3.0 in U8.8
+    localparam logic [15:0] Kp = 16'(15.0 * 256);     // 3.0 in U8.8
     localparam logic [15:0] Ki = 16'(0.0 * 256);     // 0.0 // 0.001
-    localparam logic [15:0] Kd = 16'(10.0 * 256);     // 0.3 -> rounds to 77
+    localparam logic [15:0] Kd = 16'(5.0 * 256);     // 0.3 -> rounds to 77
 
     assign K_p_set = Kp;
     assign K_i_set = Ki;
@@ -398,6 +398,7 @@ module connector (
     // assign LEDR[0] = pid_correction_dir;
     //assign LEDR[0] = 1'b1;
     //assign LEDR[9:0] = angle_raw_o[14:5];
-    assign LEDR[9:0] = testing_diff_value[14:5];
+    assign LEDR[0] = pid_sat_flag_o;
+    assign LEDR[9:2] = testing_diff_value[14:7];
 
 endmodule
