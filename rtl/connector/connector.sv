@@ -134,7 +134,7 @@ module connector (
 
     logic [31:0] correction_fpga_cycles_write_dummy_variable; // only a unused variable, because as of now unsure, if APB Bus really does what it is intended to, therefore, only give it an unused variable for now (quick fix)
     logic [31:0] correction_fpga_cycles_write; 
-    assign correction_fpga_cycles_write = 32'd500000; //32'd200000; 
+    assign correction_fpga_cycles_write = 32'd200000; //32'd500000;
 
     // --- Sensor wires ---
     /// hardcode optional inputs
@@ -152,7 +152,7 @@ module connector (
     logic signed [31:0] integral_max_i;  // set to approx 2^20 initially (guess)
     assign integral_max_i = 32'b00000000000100000000000000000000;
     logic [5:0]  integral_decay_bits_i;  // set to approx 4 initially
-    assign integral_decay_bits_i = 6'b000100;
+    assign integral_decay_bits_i = 6'b000011;
     // Calibrated zero angle: the raw sensor reading when pendulum is perfectly upright.
     // Subtracted inside PID_loop to compute the error around zero.
     logic [14:0] angle_0_i;
@@ -246,8 +246,8 @@ module connector (
     logic [15:0] K_d_set;
 
     // If using U8.8 format (8 fractional bits)
-    localparam logic [15:0] Kp = 16'(15.0 * 256);     // 3.0 in U8.8
-    localparam logic [15:0] Ki = 16'(0.0 * 256);     // 0.0 // 0.001
+    localparam logic [15:0] Kp = 16'(7.0 * 256);     // 3.0 in U8.8
+    localparam logic [15:0] Ki = 16'(7.0 * 256);     // 0.0 // 0.001
     localparam logic [15:0] Kd = 16'(5.0 * 256);     // 0.3 -> rounds to 77
 
     assign K_p_set = Kp;

@@ -52,7 +52,7 @@ module MDriver (
     //localparam logic [31:0] DIV9  = 18000;   // 900 Hz
     //localparam logic [31:0] DIV10 = 11500;   // 1000 Hz
     localparam logic [31:0] DIV10 = 25000;   // 1000 Hz
-    //localparam logic [31:0] DIV11 = 19500;
+    localparam logic [31:0] DIV11 = 20000;
     //localparam logic [31:0] DIV12 = 16500;   
     //localparam logic [31:0] DIV13 = 14000;
 
@@ -76,19 +76,19 @@ module MDriver (
         if (!mag_nonzero)
             divider_from_correction = DIV0;
         else case (msb_pos)
-            5'd30, 5'd29, 5'd28: divider_from_correction = DIV10;
-            5'd27, 5'd26, 5'd25: divider_from_correction = DIV10;
+            5'd30, 5'd29, 5'd28: divider_from_correction = DIV11;
+            5'd27, 5'd26, 5'd25: divider_from_correction = DIV11;
             5'd24, 5'd23, 5'd22: divider_from_correction = DIV10;
-            5'd21, 5'd20, 5'd19: divider_from_correction = DIV9; //DIV10;
-            5'd18, 5'd17, 5'd16: divider_from_correction = DIV9; // DIV9;
-            5'd15, 5'd14, 5'd13: divider_from_correction = DIV8; // DIV8;
-            5'd12, 5'd11:        divider_from_correction = DIV6; // DIV7;
-            5'd10, 5'd9:         divider_from_correction = DIV5;
-            5'd8, 5'd7:          divider_from_correction = DIV4;
-            5'd6, 5'd5:          divider_from_correction = DIV3;
-            5'd4, 5'd3:          divider_from_correction = DIV3;
-            5'd2,  5'd1:         divider_from_correction = DIV2;
-            5'd0:                divider_from_correction = DIV1;
+            5'd21, 5'd20, 5'd19: divider_from_correction = DIV10; //DIV10;
+            5'd18, 5'd17, 5'd16: divider_from_correction = DIV10; // DIV9;
+            5'd15, 5'd14, 5'd13: divider_from_correction = DIV9; // DIV8;
+            5'd12, 5'd11:        divider_from_correction = DIV8; // DIV7;
+            5'd10, 5'd9:         divider_from_correction = DIV7;
+            5'd8, 5'd7:          divider_from_correction = DIV6;
+            5'd6, 5'd5:          divider_from_correction = DIV5;
+            5'd4, 5'd3:          divider_from_correction = DIV4;
+            5'd2,  5'd1:         divider_from_correction = DIV3;
+            5'd0:                divider_from_correction = DIV2;
             default:             divider_from_correction = DIV0;
         endcase
     end
